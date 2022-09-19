@@ -20,11 +20,11 @@ import (
 )
 
 // getVolumes - service volumes
-func getVolumes(name string) []corev1.Volume {
+func getVolumes(name string, cephsecret []string) []corev1.Volume {
 	var scriptsVolumeDefaultMode int32 = 0755
 	var config0640AccessMode int32 = 0640
 
-	return []corev1.Volume{
+	a := []corev1.Volume{
 		{
 			Name: "scripts",
 			VolumeSource: corev1.VolumeSource{
@@ -63,11 +63,36 @@ func getVolumes(name string) []corev1.Volume {
 		},
 	}
 
+	// Get all the (ceph) secrets passed as argument
+	var p []corev1.VolumeProjection
+
+	for _, v := range cephsecret {
+		curr := corev1.VolumeProjection{
+			Secret: &corev1.SecretProjection{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: v,
+				},
+			},
+		}
+		p = append(p, curr)
+	}
+
+	if len(cephsecret) > 0 {
+		curr := corev1.Volume{
+			Name: "ceph-client-conf",
+			VolumeSource: corev1.VolumeSource{
+				Projected: &corev1.ProjectedVolumeSource{
+					Sources: p},
+			},
+		}
+		a = append(a, curr)
+	}
+	return a
 }
 
 // getInitVolumeMounts - general init task VolumeMounts
-func getInitVolumeMounts() []corev1.VolumeMount {
-	return []corev1.VolumeMount{
+func getInitVolumeMounts(cephsecret []string) []corev1.VolumeMount {
+	a := []corev1.VolumeMount{
 		{
 			Name:      "scripts",
 			MountPath: "/usr/local/bin/container-scripts",
@@ -84,11 +109,20 @@ func getInitVolumeMounts() []corev1.VolumeMount {
 			ReadOnly:  false,
 		},
 	}
+	if len(cephsecret) > 0 {
+		c := corev1.VolumeMount{
+			Name:      "ceph-client-conf",
+			MountPath: "/etc/ceph/",
+			ReadOnly:  true,
+		}
+		a = append(a, c)
+	}
+	return a
 }
 
 // getVolumeMounts - general VolumeMounts
-func getVolumeMounts() []corev1.VolumeMount {
-	return []corev1.VolumeMount{
+func getVolumeMounts(cephsecret []string) []corev1.VolumeMount {
+	a := []corev1.VolumeMount{
 		{
 			Name:      "scripts",
 			MountPath: "/usr/local/bin/container-scripts",
@@ -105,4 +139,13 @@ func getVolumeMounts() []corev1.VolumeMount {
 			ReadOnly:  false,
 		},
 	}
+	if len(cephsecret) > 0 {
+		c := corev1.VolumeMount{
+			Name:      "ceph-client-conf",
+			MountPath: "/etc/ceph/",
+			ReadOnly:  true,
+		}
+		a = append(a, c)
+	}
+	return a
 }

@@ -118,6 +118,9 @@ type GlanceAPISpec struct {
 	// +kubebuilder:validation:Optional
 	// StorageRequest
 	StorageRequest string `json:"storageRequest,omitempty"`
+	// +kubebuilder:validation:Required
+	// CephSecret containing Ceph conf and key information for glance
+	CephSecret []string `json:"cephSecret,omitempty"`
 
 }
 

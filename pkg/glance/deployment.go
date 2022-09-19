@@ -115,7 +115,7 @@ func Deployment(
 								RunAsUser: &runAsUser,
 							},
 							Env:            env.MergeEnvs([]corev1.EnvVar{}, envVars),
-							VolumeMounts:   getVolumeMounts(),
+							VolumeMounts:   getVolumeMounts(instance.Spec.CephSecret),
 							Resources:      instance.Spec.Resources,
 							ReadinessProbe: readinessProbe,
 							LivenessProbe:  livenessProbe,
@@ -125,7 +125,7 @@ func Deployment(
 			},
 		},
 	}
-	deployment.Spec.Template.Spec.Volumes = getVolumes(instance.Name)
+	deployment.Spec.Template.Spec.Volumes = getVolumes(instance.Name, instance.Spec.CephSecret)
 	// If possible two pods of the same service should not
 	// run on the same worker node. If this is not possible
 	// the get still created on the same worker node.
@@ -146,9 +146,10 @@ func Deployment(
 		DatabaseUser:         instance.Spec.DatabaseUser,
 		DatabaseName:         DatabaseName,
 		OSPSecret:            instance.Spec.Secret,
+		CephSecret:           instance.Spec.CephSecret,
 		DBPasswordSelector:   instance.Spec.PasswordSelectors.Database,
 		UserPasswordSelector: instance.Spec.PasswordSelectors.Service,
-		VolumeMounts:         getInitVolumeMounts(),
+		VolumeMounts:         getInitVolumeMounts(instance.Spec.CephSecret),
 	}
 	deployment.Spec.Template.Spec.InitContainers = initContainer(initContainerDetails)
 

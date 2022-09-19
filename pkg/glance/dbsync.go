@@ -72,7 +72,7 @@ func DbSyncJob(
 								RunAsUser: &runAsUser,
 							},
 							Env:          env.MergeEnvs([]corev1.EnvVar{}, envVars),
-							VolumeMounts: getVolumeMounts(),
+							VolumeMounts: getVolumeMounts(instance.Spec.CephSecret),
 						},
 					},
 				},
@@ -80,7 +80,7 @@ func DbSyncJob(
 		},
 	}
 
-	job.Spec.Template.Spec.Volumes = getVolumes(ServiceName)
+	job.Spec.Template.Spec.Volumes = getVolumes(ServiceName, instance.Spec.CephSecret)
 
 	initContainerDetails := APIDetails{
 		ContainerImage:       instance.Spec.ContainerImage,
@@ -90,7 +90,7 @@ func DbSyncJob(
 		OSPSecret:            instance.Spec.Secret,
 		DBPasswordSelector:   instance.Spec.PasswordSelectors.Database,
 		UserPasswordSelector: instance.Spec.PasswordSelectors.Service,
-		VolumeMounts:         getInitVolumeMounts(),
+		VolumeMounts:         getInitVolumeMounts(instance.Spec.CephSecret),
 	}
 	job.Spec.Template.Spec.InitContainers = initContainer(initContainerDetails)
 

@@ -29,6 +29,7 @@ type APIDetails struct {
 	DatabaseName         string
 	TransportURL         string
 	OSPSecret            string
+	CephSecret           []string
 	DBPasswordSelector   string
 	UserPasswordSelector string
 	VolumeMounts         []corev1.VolumeMount
@@ -103,7 +104,7 @@ func initContainer(init APIDetails) []corev1.Container {
 			},
 			Args:         args,
 			Env:          envs,
-			VolumeMounts: getInitVolumeMounts(),
+			VolumeMounts: getInitVolumeMounts(init.CephSecret),
 		},
 	}
 }

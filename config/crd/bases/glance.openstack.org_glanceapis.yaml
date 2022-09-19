@@ -45,21 +45,17 @@ spec:
             description: GlanceAPISpec defines the desired state of GlanceAPI
             properties:
               cephBackend:
-                description: 'CephBackend - The ceph Backend structure with all the
-                  parameters TODO: -> implement a backend wrapper in a generic structure'
+                description: CephBackend - The ceph Backend structure with all the
+                  parameters
                 properties:
                   cephClientKey:
-                    default: ClientKey
-                    description: ClientKey sets the Ceph cluster key used by Glance
+                    description: ClientKey set the Ceph cluster key
                     type: string
                   cephFsid:
-                    default: ClusterFSID
                     description: ClusterFSID defines the fsid
                     type: string
                   cephMons:
-                    default: ClusterMons
-                    description: ClusterMons defines the commma separated mon
-                      list
+                    description: ClusterMons defines the commma separated mon list
                     type: string
                   cephPools:
                     additionalProperties:
@@ -71,14 +67,24 @@ spec:
                       required:
                       - name
                       type: object
-                    description: Pools - Map of chosen names to spec definitions
-                      for the Ceph cluster pools used by Glance
+                    description: Pools - Map of chosen names to spec definitions for
+                      the Ceph cluster pools
                     type: object
                   cephUser:
                     default: CephUser
-                    description: CephUser set the Ceph cluster pool used by Glance
+                    description: User set the Ceph cluster pool
                     type: string
+                required:
+                - cephClientKey
+                - cephFsid
+                - cephMons
                 type: object
+              cephSecret:
+                description: CephSecret containing Ceph conf and key information for
+                  glance
+                items:
+                  type: string
+                type: array
               containerImage:
                 description: GlanceAPI Container Image URL
                 type: string
