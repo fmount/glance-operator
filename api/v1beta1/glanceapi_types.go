@@ -20,7 +20,6 @@ import (
 	"fmt"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/endpoint"
-	"github.com/openstack-k8s-operators/lib-common/modules/storage/ceph"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -83,10 +82,6 @@ type GlanceAPISpec struct {
 	// Debug - enable debug for different deploy stages. If an init container is used, it runs and the
 	// actual action pod gets started with sleep infinity
 	Debug GlanceAPIDebug `json:"debug,omitempty"`
-
-	// +kubebuilder:validation:Optional
-	// CephBackend - The ceph Backend structure with all the parameters
-	CephBackend ceph.Backend `json:"cephBackend,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false

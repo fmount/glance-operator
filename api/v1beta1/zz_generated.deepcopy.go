@@ -112,7 +112,6 @@ func (in *GlanceAPISpec) DeepCopyInto(out *GlanceAPISpec) {
 		}
 	}
 	out.Debug = in.Debug
-	in.CephBackend.DeepCopyInto(&out.CephBackend)
 	if in.DefaultConfigOverwrite != nil {
 		in, out := &in.DefaultConfigOverwrite, &out.DefaultConfigOverwrite
 		*out = make(map[string]string, len(*in))

@@ -44,41 +44,6 @@ spec:
           spec:
             description: GlanceAPISpec defines the desired state of GlanceAPI
             properties:
-              cephBackend:
-                description: CephBackend - The ceph Backend structure with all the
-                  parameters
-                properties:
-                  cephClientKey:
-                    description: ClientKey set the Ceph cluster key
-                    type: string
-                  cephFsid:
-                    description: ClusterFSID defines the fsid
-                    type: string
-                  cephMons:
-                    description: ClusterMons defines the commma separated mon list
-                    type: string
-                  cephPools:
-                    additionalProperties:
-                      description: PoolSpec defines the Ceph pool Spec parameters
-                      properties:
-                        name:
-                          description: PoolName defines the name of the pool
-                          type: string
-                      required:
-                      - name
-                      type: object
-                    description: Pools - Map of chosen names to spec definitions for
-                      the Ceph cluster pools
-                    type: object
-                  cephUser:
-                    default: CephUser
-                    description: User set the Ceph cluster pool
-                    type: string
-                required:
-                - cephClientKey
-                - cephFsid
-                - cephMons
-                type: object
               cephSecret:
                 description: CephSecret containing Ceph conf and key information for
                   glance
