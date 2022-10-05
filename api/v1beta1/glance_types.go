@@ -20,6 +20,7 @@ import (
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	"github.com/openstack-k8s-operators/lib-common/modules/storage/ceph"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/openstack-k8s-operators/lib-common/modules/storage"
 )
 
 const (
@@ -106,6 +107,10 @@ type GlanceSpec struct {
 	// +kubebuilder:default:={replicas: 1}
 	// GlanceAPIExternal - Spec definition for the external API service of this Glance deployment
 	GlanceAPIExternal GlanceAPISpec `json:"glanceAPIExternal"`
+
+	// +kubebuilder:validation:Optional
+	// ExtraMounts containing conf files and credentials
+	ExtraMounts []storage.GlanceExtraVolMounts `json:"extraMounts"`
 }
 
 // PasswordSelector to identify the DB and AdminUser password from the Secret

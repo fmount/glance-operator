@@ -17,11 +17,13 @@ package glanceapi
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	"github.com/openstack-k8s-operators/lib-common/modules/storage"
 )
 
 // getInitVolumeMounts - general init task VolumeMounts
-func getInitVolumeMounts() []corev1.VolumeMount {
-	return []corev1.VolumeMount{
+func getInitVolumeMounts(extraVol []storage.GlanceExtraVolMounts, svc []storage.ServiceType) []corev1.VolumeMount {
+	g := storage.GlanceExtraVolMounts{}
+	vm := []corev1.VolumeMount{
 		{
 			Name:      "scripts",
 			MountPath: "/usr/local/bin/container-scripts",
@@ -38,4 +40,5 @@ func getInitVolumeMounts() []corev1.VolumeMount {
 			ReadOnly:  false,
 		},
 	}
+	return g.AppendVolumeMount(vm, extraVol, svc)
 }
