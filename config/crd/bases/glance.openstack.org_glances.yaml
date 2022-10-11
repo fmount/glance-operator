@@ -126,10 +126,11 @@ spec:
                   API service of this Glance deployment
                 properties:
                   apiType:
-                    default: external
+                    default: default
                     enum:
                     - internal
                     - external
+                    - default
                     type: string
                   cephBackend:
                     description: CephBackend - The ceph Backend structure with all
@@ -281,10 +282,11 @@ spec:
                   and admin API service of this Glance deployment
                 properties:
                   apiType:
-                    default: external
+                    default: default
                     enum:
                     - internal
                     - external
+                    - default
                     type: string
                   cephBackend:
                     description: CephBackend - The ceph Backend structure with all
@@ -465,8 +467,6 @@ spec:
                 description: StorageRequest
                 type: string
             required:
-            - glanceAPIExternal
-            - glanceAPIInternal
             - secret
             - storageRequest
             type: object

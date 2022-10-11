@@ -43,8 +43,8 @@ type GlanceAPISpec struct {
 	ContainerImage string `json:"containerImage,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Enum=internal;external
-	// +kubebuilder:default=external
+	// +kubebuilder:validation:Enum=internal;external;default
+	// +kubebuilder:default=default
 	APIType string `json:"apiType,omitempty"`
 
 	// +kubebuilder:validation:Optional

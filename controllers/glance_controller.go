@@ -212,7 +212,7 @@ func (r *GlanceReconciler) reconcileDelete(ctx context.Context, instance *glance
 	}
 
 	// Remove finalizers from any existing child GlanceAPIs
-	for _, apiType := range []string{glancev1.APIInternal, glancev1.APIExternal} {
+	for _, apiType := range []string{glancev1.APIInternal, glancev1.APIExternal, glancev1.APIDefault} {
 		glanceAPI := &glancev1.GlanceAPI{}
 		err = helper.GetClient().Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-%s", instance.Name, apiType), Namespace: instance.Namespace}, glanceAPI)
 		if err != nil && !k8s_errors.IsNotFound(err) {
@@ -534,11 +534,19 @@ func (r *GlanceReconciler) reconcileNormal(ctx context.Context, instance *glance
 	// normal reconcile tasks
 	//
 
-	// deploy internal glance-api
+	var apiCondition *condition.Condition
 
-	// Regardless of what the user may have set in GlanceAPIInternal.EndpointType,
-	// we force "internal" here
-	instance.Spec.GlanceAPIInternal.APIType = glancev1.APIInternal
+	// Get Glance backend
+	gb := glance.SetGlanceBackend(instance)
+
+	// We force "internal" here and split the API deployment if the backend is
+	// not "file", otherwise a single API pod will be deployed
+	instance.Spec.GlanceAPIInternal.APIType = glancev1.APIDefault
+	if gb != "file" {
+		instance.Spec.GlanceAPIInternal.APIType = glancev1.APIInternal
+	}
+
+	//instance.Spec.GlanceAPIInternal.APIType = glancev1.APIInternal
 	glanceAPI, op, err := r.apiDeploymentCreateOrUpdate(instance, instance.Spec.GlanceAPIInternal, helper)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
@@ -561,35 +569,40 @@ func (r *GlanceReconciler) reconcileNormal(ctx context.Context, instance *glance
 
 	// Get internal GlanceAPI's condition status for comparison with external below
 	internalAPICondition := glanceAPI.Status.Conditions.Mirror(glancev1.GlanceAPIReadyCondition)
+	apiCondition = condition.GetHigherPrioCondition(internalAPICondition, apiCondition).DeepCopy()
 
-	// deploy external glance-api
+	// If ceph or cinder are the backends, we'd like to split the services, otherwise
+	// a single pod is enough
+	if gb != "file" {
+		// deploy external glance-api
+		// Regardless of what the user may have set in GlanceAPIExternal.EndpointType,
+		// we force "external" here
+		instance.Spec.GlanceAPIExternal.APIType = glancev1.APIExternal
+		glanceAPI, op, err = r.apiDeploymentCreateOrUpdate(instance, instance.Spec.GlanceAPIExternal, helper)
+		if err != nil {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				glancev1.GlanceAPIReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				glancev1.GlanceAPIReadyErrorMessage,
+				err.Error()))
+			return ctrl.Result{}, err
+		}
+		if op != controllerutil.OperationResultNone {
+			r.Log.Info(fmt.Sprintf("Deployment %s successfully reconciled - operation: %s", instance.Name, string(op)))
+		}
 
-	// Regardless of what the user may have set in GlanceAPIExternal.EndpointType,
-	// we force "external" here
-	instance.Spec.GlanceAPIExternal.APIType = glancev1.APIExternal
-	glanceAPI, op, err = r.apiDeploymentCreateOrUpdate(instance, instance.Spec.GlanceAPIExternal, helper)
-	if err != nil {
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			glancev1.GlanceAPIReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			glancev1.GlanceAPIReadyErrorMessage,
-			err.Error()))
-		return ctrl.Result{}, err
+		// Mirror external GlanceAPI status' APIEndpoints and ReadyCount to this parent CR
+		if glanceAPI.Status.APIEndpoints != nil {
+			instance.Status.APIEndpoints[string(endpoint.EndpointPublic)] = glanceAPI.Status.APIEndpoints[string(endpoint.EndpointPublic)]
+		}
+		instance.Status.GlanceAPIExternalReadyCount = glanceAPI.Status.ReadyCount
+
+		// Get external GlanceAPI's condition status and compare it against priority of internal GlanceAPI's condition
+		externalAPICondition := glanceAPI.Status.Conditions.Mirror(glancev1.GlanceAPIReadyCondition)
+		apiCondition = condition.GetHigherPrioCondition(internalAPICondition, externalAPICondition).DeepCopy()
 	}
-	if op != controllerutil.OperationResultNone {
-		r.Log.Info(fmt.Sprintf("Deployment %s successfully reconciled - operation: %s", instance.Name, string(op)))
-	}
 
-	// Mirror external GlanceAPI status' APIEndpoints and ReadyCount to this parent CR
-	if glanceAPI.Status.APIEndpoints != nil {
-		instance.Status.APIEndpoints[string(endpoint.EndpointPublic)] = glanceAPI.Status.APIEndpoints[string(endpoint.EndpointPublic)]
-	}
-	instance.Status.GlanceAPIExternalReadyCount = glanceAPI.Status.ReadyCount
-
-	// Get external GlanceAPI's condition status and compare it against priority of internal GlanceAPI's condition
-	externalAPICondition := glanceAPI.Status.Conditions.Mirror(glancev1.GlanceAPIReadyCondition)
-	apiCondition := condition.GetHigherPrioCondition(internalAPICondition, externalAPICondition).DeepCopy()
 	if apiCondition != nil {
 		instance.Status.Conditions.Set(apiCondition)
 	}
@@ -616,7 +629,6 @@ func (r *GlanceReconciler) apiDeploymentCreateOrUpdate(instance *glancev1.Glance
 		deployment.Spec.DatabaseHostname = instance.Status.DatabaseHostname
 		deployment.Spec.DatabaseUser = instance.Spec.DatabaseUser
 		deployment.Spec.DefaultConfigOverwrite = instance.Spec.DefaultConfigOverwrite
-		// TODO: This could be superfluous if backed by Ceph?
 		deployment.Spec.Pvc = glance.ServiceName
 		deployment.Spec.Secret = instance.Spec.Secret
 

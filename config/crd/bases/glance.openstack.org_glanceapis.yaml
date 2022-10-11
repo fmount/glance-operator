@@ -45,10 +45,11 @@ spec:
             description: GlanceAPISpec defines the desired state of GlanceAPI
             properties:
               apiType:
-                default: external
+                default: default
                 enum:
                 - internal
                 - external
+                - default
                 type: string
               cephBackend:
                 description: CephBackend - The ceph Backend structure with all the

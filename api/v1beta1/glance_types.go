@@ -22,6 +22,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+
 const (
 	// DbSyncHash hash
 	DbSyncHash = "dbsync"
@@ -29,6 +30,8 @@ const (
 	APIInternal = "internal"
 	// APIExternal -
 	APIExternal = "external"
+	// APIDefault -
+	APIDefault = "default"
 )
 
 // GlanceSpec defines the desired state of Glance
@@ -97,12 +100,12 @@ type GlanceSpec struct {
 	// StorageRequest
 	StorageRequest string `json:"storageRequest"`
 
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:default:={replicas: 1}
 	// GlanceAPIInternal - Spec definition for the internal and admin API service of this Glance deployment
 	GlanceAPIInternal GlanceAPISpec `json:"glanceAPIInternal"`
 
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:default:={replicas: 1}
 	// GlanceAPIExternal - Spec definition for the external API service of this Glance deployment
 	GlanceAPIExternal GlanceAPISpec `json:"glanceAPIExternal"`
