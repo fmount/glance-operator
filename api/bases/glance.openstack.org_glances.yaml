@@ -49,12 +49,18 @@ spec:
               databaseUser:
                 default: glance
                 type: string
+              dbPurge:
+                properties:
+                  age:
+                    default: 30
+                    type: integer
+                  schedule:
+                    default: 1 0 * * *
+                    type: string
+                type: object
               debug:
                 properties:
-                  cronJob:
-                    default: false
-                    type: boolean
-                  dbSync:
+                  dbPurge:
                     default: false
                     type: boolean
                 type: object
@@ -825,12 +831,6 @@ spec:
                       items:
                         type: string
                       type: array
-                    debug:
-                      properties:
-                        service:
-                          default: false
-                          type: boolean
-                      type: object
                     networkAttachments:
                       items:
                         type: string

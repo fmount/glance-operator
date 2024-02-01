@@ -39,6 +39,10 @@ const (
 
 	// GlanceAPIContainerImage is the fall-back container image for GlanceAPI
 	GlanceAPIContainerImage = "quay.io/podified-antelope-centos9/openstack-glance-api:current-podified"
+	//DBPurgeDefaultAge indicates the number of days of purging DB records
+	DBPurgeDefaultAge = 30
+	//DBPurgeDefaultSchedule is in crontab format, and the default runs the job once every day
+	DBPurgeDefaultSchedule = "1 0 * * *"
 )
 
 // GlanceAPITemplate defines the desired state of GlanceAPI
@@ -58,11 +62,6 @@ type GlanceAPITemplate struct {
 	// +kubebuilder:validation:Optional
 	// NodeSelector to target subset of worker nodes running this service
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-
-	// +kubebuilder:validation:Optional
-	// Debug - enable debug for different deploy stages. If an init container is used, it runs and the
-	// actual action pod gets started with sleep infinity
-	Debug GlanceAPIDebug `json:"debug,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// Pvc - Storage claim for file-backed Glance
@@ -122,8 +121,9 @@ func SetupDefaults() {
 	// Acquire environmental defaults and initialize Glance defaults with them
 	glanceDefaults := GlanceDefaults{
 		ContainerImageURL: util.GetEnvVar("RELATED_IMAGE_GLANCE_API_IMAGE_URL_DEFAULT", GlanceAPIContainerImage),
+		DBPurgeAge: DBPurgeDefaultAge,
+		DBPurgeSchedule: DBPurgeDefaultSchedule,
 	}
-
 	SetupGlanceDefaults(glanceDefaults)
 }
 

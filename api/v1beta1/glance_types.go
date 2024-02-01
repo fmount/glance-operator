@@ -124,6 +124,23 @@ type GlanceSpec struct {
 	// keystone catalog, and it acts as a selector for the underlying glanceAPI(s)
 	// that can be specified by name
 	KeystoneEndpoint string `json:"keystoneEndpoint"`
+
+	// +kubebuilder:validation:Optional
+	// DBPurge parameters -
+	DBPurge DBPurge `json:"dbPurge,omitempty"`
+}
+
+// DBPurge struct is used to model the parameters exposed to the Glance DBPurge CronJob
+type DBPurge struct {
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=30
+	//"+kubebuilder:validation:Minimum=1"
+	// Age is the DBPurgeAge parameter and indicates the number of days of purging DB records
+	Age int `json:"age"`
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default="1 0 * * *"
+	//Schedule defines the crontab format string to schedule the DBPurge cronJob
+	Schedule string `json:"schedule"`
 }
 
 // PasswordSelector to identify the DB and AdminUser password from the Secret
@@ -141,14 +158,9 @@ type PasswordSelector struct {
 
 // GlanceDebug defines the observed state of GlanceAPIDebug
 type GlanceDebug struct {
-	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
-	// DBSync enable debug
-	DBSync bool `json:"dbSync"`
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=false
-	// CronJob enable debug
-	CronJob bool `json:"cronJob"`
+	// DBPurge increases log verbosity by executing the db_purge command with "--debug".
+	DBPurge bool `json:"dbPurge,omitempty"`
 }
 
 // GlanceStatus defines the observed state of Glance
