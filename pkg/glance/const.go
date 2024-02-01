@@ -83,22 +83,9 @@ const (
 	CacheCleaner CronJobType = "cleaner"
 	//CachePruner -
 	CachePruner CronJobType = "pruner"
-	//CacheCleanerDefaultSchedule -
-	CacheCleanerDefaultSchedule = "1 0 * * *"
-	//CachePrunerDefaultSchedule -
-	CachePrunerDefaultSchedule = "*/30 * * * *"
 	//ImageCacheDir -
 	ImageCacheDir = "/var/lib/glance/image-cache"
 )
-
-// DBPurgeCommandBase -
-var DBPurgeCommandBase = [...]string{"/usr/bin/glance-manage", "--debug", "--config-dir /etc/glance/glance.conf.d", "db purge "}
-
-// CacheCleanerCommandBase -
-var CacheCleanerCommandBase = [...]string{"/usr/bin/glance-cache-cleaner", "--debug", "--config-dir /etc/glance/glance.conf.d"}
-
-// CachePrunerCommandBase -
-var CachePrunerCommandBase = [...]string{"/usr/bin/glance-cache-pruner", "--debug", "--config-dir /etc/glance/glance.conf.d"}
 
 // DbsyncPropagation keeps track of the DBSync Service Propagation Type
 var DbsyncPropagation = []storage.PropagationType{storage.DBSync}

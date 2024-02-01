@@ -19,8 +19,6 @@ import (
 	glancev1 "github.com/openstack-k8s-operators/glance-operator/api/v1beta1"
 
 	"fmt"
-	"strconv"
-	"strings"
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -36,38 +34,53 @@ func CronJob(
 ) *batchv1.CronJob {
 	runAsUser := int64(0)
 	var config0644AccessMode int32 = 0644
-	var cronJobCommand []string
 	var cronJobSchedule string
+
+	var cronJobCommand string
+	debugArg := ""
 
 	switch cjType {
 	case "purge":
-		cronJobCommand = DBPurgeCommandBase[:]
-		// Extend the resulting command with the DBPurgeAge int in case purge is
-		cronJobCommand = append(cronJobCommand, strconv.Itoa(instance.Spec.DBPurge.Age))
+		cronJobCommand = fmt.Sprintf(
+			"/usr/bin/glance-manage%s --config-dir /etc/glance/glance.conf.d db purge %d",
+			debugArg,
+			instance.Spec.DBPurge.Age)
+		if instance.Spec.Debug.DBPurge {
+			debugArg = " --debug"
+		}
 		cronJobSchedule = instance.Spec.DBPurge.Schedule
 	case "cleaner":
-		cronJobCommand = CacheCleanerCommandBase[:]
-		cronJobSchedule = CacheCleanerDefaultSchedule
+		cronJobCommand = fmt.Sprintf(
+			"/usr/bin/glance-cache-cleaner%s --config-dir /etc/glance/glance.conf.d",
+			debugArg)
+		if instance.Spec.Debug.DBPurge {
+			debugArg = " --debug"
+		}
+		cronJobSchedule = instance.Spec.ImageCacheClean.CleanerSchedule
 	case "pruner":
-		cronJobCommand = CachePrunerCommandBase[:]
-		cronJobSchedule = CachePrunerDefaultSchedule
+		cronJobCommand = fmt.Sprintf(
+			"/usr/bin/glance-cache-pruner%s --config-dir /etc/glance/glance.conf.d",
+			debugArg)
+		if instance.Spec.Debug.DBPurge {
+			debugArg = " --debug"
+		}
+		cronJobSchedule = instance.Spec.ImageCacheClean.PrunerSchedule
 	default:
-		cronJobCommand = DBPurgeCommandBase[:]
+		cronJobCommand = fmt.Sprintf(
+			"/usr/bin/glance-manage%s --config-dir /etc/glance/glance.conf.d db purge %d",
+			debugArg,
+			instance.Spec.DBPurge.Age)
+		if instance.Spec.Debug.DBPurge {
+			debugArg = " --debug"
+		}
 		cronJobSchedule = instance.Spec.DBPurge.Schedule
 	}
 
-	var cronCommand []string = cronJobCommand[:]
-	args := []string{"-c"}
+	args := []string{"-c", cronJobCommand}
 
-	if !instance.Spec.Debug.DBPurge {
-		// If debug mode is not requested, remove the --debug option
-		cronCommand = append(cronJobCommand[:1], cronJobCommand[2:]...)
-	}
 	// NOTE: (fpantano) - check if it makes sense extending this command to
 	// purge_images_table
 	// Build the resulting command
-	commandString := strings.Join(cronCommand, " ")
-	args = append(args, commandString)
 
 	parallelism := int32(1)
 	completions := int32(1)

@@ -831,6 +831,9 @@ spec:
                       items:
                         type: string
                       type: array
+                    imageCacheSize:
+                      default: ""
+                      type: string
                     networkAttachments:
                       items:
                         type: string
@@ -960,8 +963,18 @@ spec:
                       type: string
                   required:
                   - containerImage
+                  - imageCacheSize
                   - storageRequest
                   type: object
+                type: object
+              imageCacheClean:
+                properties:
+                  cleanerSchedule:
+                    default: 1 0 * * *
+                    type: string
+                  prunerSchedule:
+                    default: '*/30 * * * *'
+                    type: string
                 type: object
               imageCacheSize:
                 default: ""

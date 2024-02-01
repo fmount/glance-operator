@@ -118,6 +118,10 @@ type GlanceSpec struct {
 	// +kubebuilder:default=""
 	ImageCacheSize string `json:"imageCacheSize"`
 
+	// +kubebuilder:validation:Optional
+	// DBPurge parameters -
+	ImageCacheClean ImageCacheClean `json:"imageCacheClean,omitempty"`
+
 	// +kubebuilder:validation:Required
 	// +kubebuilder:default=""
 	// KeystoneEndpoint - indicates which glanceAPI should be registered in the
@@ -141,6 +145,17 @@ type DBPurge struct {
 	// +kubebuilder:default="1 0 * * *"
 	//Schedule defines the crontab format string to schedule the DBPurge cronJob
 	Schedule string `json:"schedule"`
+}
+
+type ImageCacheClean struct {
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default="1 0 * * *"
+	//CleanerSchedule defines the crontab format string to schedule the DBPurge cronJob
+	CleanerSchedule string `json:"cleanerSchedule"`
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default="*/30 * * * *"
+	//PrunerSchedule defines the crontab format string to schedule the DBPurge cronJob
+	PrunerSchedule string `json:"prunerSchedule"`
 }
 
 // PasswordSelector to identify the DB and AdminUser password from the Secret

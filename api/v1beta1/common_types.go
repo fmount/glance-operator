@@ -41,8 +41,12 @@ const (
 	GlanceAPIContainerImage = "quay.io/podified-antelope-centos9/openstack-glance-api:current-podified"
 	//DBPurgeDefaultAge indicates the number of days of purging DB records
 	DBPurgeDefaultAge = 30
-	//DBPurgeDefaultSchedule is in crontab format, and the default runs the job once every day
+	//DBPurgeDefaultSchedule is in crontab format
 	DBPurgeDefaultSchedule = "1 0 * * *"
+	//PrunerDefaultSchedule is in crontab format
+	PrunerDefaultSchedule = "1 0 * * *"
+	//CleanerDefaultSchedule is in crontab format
+	CleanerDefaultSchedule = "*/30 * * * *"
 )
 
 // GlanceAPITemplate defines the desired state of GlanceAPI
@@ -107,6 +111,10 @@ type GlanceAPITemplate struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// TLS - Parameters related to the TLS
 	TLS tls.API `json:"tls,omitempty"`
+
+	// ImageCacheSize, provides the size of the cache that will be reflected in the image_cache_max_size parameter
+	// +kubebuilder:default=""
+	ImageCacheSize string `json:"imageCacheSize"`
 }
 
 // APIOverrideSpec to override the generated manifest of several child resources.
@@ -123,6 +131,8 @@ func SetupDefaults() {
 		ContainerImageURL: util.GetEnvVar("RELATED_IMAGE_GLANCE_API_IMAGE_URL_DEFAULT", GlanceAPIContainerImage),
 		DBPurgeAge: DBPurgeDefaultAge,
 		DBPurgeSchedule: DBPurgeDefaultSchedule,
+		CleanerSchedule: CleanerDefaultSchedule,
+		PrunerSchedule: PrunerDefaultSchedule,
 	}
 	SetupGlanceDefaults(glanceDefaults)
 }
