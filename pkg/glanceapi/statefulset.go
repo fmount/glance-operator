@@ -50,7 +50,6 @@ func StatefulSet(
 	privileged bool,
 	imageConv bool,
 ) (*appsv1.StatefulSet, error) {
-	runAsUser := int64(0)
 	var config0644AccessMode int32 = 0644
 
 	startupProbe := &corev1.Probe{
@@ -224,33 +223,29 @@ func StatefulSet(
 								"-F",
 								string(glance.GlanceLogPath + instance.Name + ".log"),
 							},
-							Image: instance.Spec.ContainerImage,
-							SecurityContext: &corev1.SecurityContext{
-								RunAsUser: &runAsUser,
-							},
-							Env:            env.MergeEnvs([]corev1.EnvVar{}, envVars),
-							VolumeMounts:   glance.GetLogVolumeMount(),
-							Resources:      instance.Spec.Resources,
-							StartupProbe:   startupProbe,
-							ReadinessProbe: readinessProbe,
-							LivenessProbe:  livenessProbe,
+							Image:           instance.Spec.ContainerImage,
+							SecurityContext: glance.SecurityContext(),
+							Env:             env.MergeEnvs([]corev1.EnvVar{}, envVars),
+							VolumeMounts:    glance.GetLogVolumeMount(),
+							Resources:       instance.Spec.Resources,
+							StartupProbe:    startupProbe,
+							ReadinessProbe:  readinessProbe,
+							LivenessProbe:   livenessProbe,
 						},
 						{
 							Name: glance.ServiceName + "-httpd",
 							Command: []string{
 								"/bin/bash",
 							},
-							Args:  []string{"-c", GlanceAPIHttpdCommand},
-							Image: instance.Spec.ContainerImage,
-							SecurityContext: &corev1.SecurityContext{
-								RunAsUser: &runAsUser,
-							},
-							Env:            env.MergeEnvs([]corev1.EnvVar{}, envVars),
-							VolumeMounts:   httpdVolumeMount,
-							Resources:      instance.Spec.Resources,
-							StartupProbe:   startupProbe,
-							ReadinessProbe: readinessProbe,
-							LivenessProbe:  livenessProbe,
+							Args:            []string{"-c", GlanceAPIHttpdCommand},
+							Image:           instance.Spec.ContainerImage,
+							SecurityContext: glance.HttpdSecurityContext(),
+							Env:             env.MergeEnvs([]corev1.EnvVar{}, envVars),
+							VolumeMounts:    httpdVolumeMount,
+							Resources:       instance.Spec.Resources,
+							StartupProbe:    startupProbe,
+							ReadinessProbe:  readinessProbe,
+							LivenessProbe:   livenessProbe,
 						},
 						{
 							Name: glance.ServiceName + "-api",
@@ -259,10 +254,9 @@ func StatefulSet(
 							},
 							Args:  args,
 							Image: instance.Spec.ContainerImage,
-							SecurityContext: &corev1.SecurityContext{
-								RunAsUser:  &runAsUser,
-								Privileged: &privileged,
-							},
+							SecurityContext: glance.APISecurityContext(
+								privileged,
+							),
 							Env: env.MergeEnvs([]corev1.EnvVar{}, envVars),
 							VolumeMounts: append(glance.GetVolumeMounts(
 								instance.Spec.CustomServiceConfigSecrets,
