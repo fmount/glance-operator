@@ -102,40 +102,40 @@ func GetGlanceTestData(glanceName types.NamespacedName) GlanceTestData {
 		},
 		GlanceSingle: types.NamespacedName{
 			Namespace: glanceName.Namespace,
-			Name:      fmt.Sprintf("%s-default-single", glanceName.Name),
+			Name:      fmt.Sprintf("%s-default-0-single", glanceName.Name),
 		},
 		GlanceEdge: types.NamespacedName{
 			Namespace: glanceName.Namespace,
-			Name:      fmt.Sprintf("%s-default-edge", glanceName.Name),
+			Name:      fmt.Sprintf("%s-default-0-edge", glanceName.Name),
 		},
 		GlanceInternal: types.NamespacedName{
 			Namespace: glanceName.Namespace,
-			Name:      fmt.Sprintf("%s-default-internal", glanceName.Name),
+			Name:      fmt.Sprintf("%s-default-0-internal", glanceName.Name),
 		},
 		GlanceExternal: types.NamespacedName{
 			Namespace: glanceName.Namespace,
-			Name:      fmt.Sprintf("%s-default-external", glanceName.Name),
+			Name:      fmt.Sprintf("%s-default-0-external", glanceName.Name),
 		},
 		GlanceExternalStatefulSet: types.NamespacedName{
 			Namespace: glanceName.Namespace,
-			Name:      fmt.Sprintf("%s-default-external-api", glanceName.Name),
+			Name:      fmt.Sprintf("%s-default-0-external-api", glanceName.Name),
 		},
 		GlanceInternalStatefulSet: types.NamespacedName{
 			Namespace: glanceName.Namespace,
-			Name:      fmt.Sprintf("%s-default-internal-api", glanceName.Name),
+			Name:      fmt.Sprintf("%s-default-0-internal-api", glanceName.Name),
 		},
 		GlanceEdgeStatefulSet: types.NamespacedName{
 			Namespace: glanceName.Namespace,
-			Name:      fmt.Sprintf("%s-default-edge-api", glanceName.Name),
+			Name:      fmt.Sprintf("%s-default-0-edge-api", glanceName.Name),
 		},
 		// Also used to identify GlanceKeystoneService
 		GlanceInternalSvc: types.NamespacedName{
 			Namespace: glanceName.Namespace,
-			Name:      fmt.Sprintf("%s-default-internal", glance.ServiceName),
+			Name:      fmt.Sprintf("%s-default-0-internal", glance.ServiceName),
 		},
 		GlancePublicSvc: types.NamespacedName{
 			Namespace: glanceName.Namespace,
-			Name:      fmt.Sprintf("%s-default-public", glance.ServiceName),
+			Name:      fmt.Sprintf("%s-default-0-public", glance.ServiceName),
 		},
 		GlanceRole: types.NamespacedName{
 			Namespace: glanceName.Namespace,
@@ -163,7 +163,7 @@ func GetGlanceTestData(glanceName types.NamespacedName) GlanceTestData {
 		},
 		GlanceSingleConfigMapData: types.NamespacedName{
 			Namespace: glanceName.Namespace,
-			Name:      fmt.Sprintf("%s-%s", glanceName.Name, "default-single-config-data"),
+			Name:      fmt.Sprintf("%s-%s", glanceName.Name, "default-0-single-config-data"),
 		},
 		GlanceService: types.NamespacedName{
 			Namespace: glanceName.Namespace,

@@ -84,7 +84,7 @@ spec:
             store_description = "az0 RBD backend"
             rbd_store_pool = images
             rbd_store_user = openstack
-        az2:
+        az:
           override:
             service:
               internal:
@@ -99,20 +99,21 @@ spec:
           - storage
           replicas: 3
           type: edge
+          count: 10
           customServiceConfig: |
             [DEFAULT]
             enabled_import_methods = [web-download,copy-image,glance-direct]
-            enabled_backends = az0:rbd,az2:rbd
+            enabled_backends = az0:rbd,az{{ .Item }}:rbd
             [glance_store]
             stores = http,rbd
-            default_backend = az2
-            [az2]
-            rbd_store_ceph_conf = /etc/ceph/az2.conf
-            store_description = "az2 RBD backend"
+            default_backend = az{{ .Item }}
+            [az{{ .Item }}]
+            rbd_store_ceph_conf = /etc/ceph/az{{ .Item }}.conf
+            store_description = "az{{ .Item }} RBD backend"
             rbd_store_pool = images
             rbd_store_user = openstack
             [az0]
-            rbd_store_ceph_conf = /etc/ceph/az2.conf
+            rbd_store_ceph_conf = /etc/ceph/az0.conf
             store_description = "az0 RBD backend"
             rbd_store_pool = images
             rbd_store_user = openstack

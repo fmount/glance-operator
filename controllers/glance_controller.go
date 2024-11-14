@@ -631,9 +631,16 @@ func (r *GlanceReconciler) reconcileNormal(ctx context.Context, instance *glance
 	//
 
 	for name, glanceAPI := range instance.Spec.GlanceAPIs {
-		err = r.apiDeployment(ctx, instance, name, glanceAPI, helper, serviceLabels, memcached)
-		if err != nil {
-			return ctrl.Result{}, err
+		var c = map[string]glancev1.GlanceAPITemplate{}
+		for i := 0; i < *glanceAPI.Count; i++ {
+			c[fmt.Sprintf("%s-%d", name, i)] = glanceAPI
+		}
+
+		for k, v := range c {
+			err = r.apiDeployment(ctx, instance, k, v, helper, serviceLabels, memcached)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 	}
 	err = r.glanceAPICleanup(ctx, instance)

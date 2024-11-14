@@ -249,6 +249,11 @@ func (in *GlanceAPITemplate) DeepCopyInto(out *GlanceAPITemplate) {
 		*out = new(int32)
 		**out = **in
 	}
+	if in.Count != nil {
+		in, out := &in.Count, &out.Count
+		*out = new(int)
+		**out = **in
+	}
 	if in.NodeSelector != nil {
 		in, out := &in.NodeSelector, &out.NodeSelector
 		*out = make(map[string]string, len(*in))

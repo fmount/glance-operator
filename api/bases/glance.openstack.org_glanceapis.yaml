@@ -53,6 +53,9 @@ spec:
                 type: string
               containerImage:
                 type: string
+              count:
+                default: 1
+                type: integer
               customServiceConfig:
                 type: string
               customServiceConfigSecrets:

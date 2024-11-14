@@ -29,6 +29,8 @@ const (
 	DeploymentHash = "deployment"
 	// APINameLabel - Label on a GlanceAPI that signals the name of the API
 	APINameLabel = "api-name"
+	APICountLabel = "api-count"
+	APINameParent = "api-parent"
 )
 
 // GlanceAPISpec defines the desired state of GlanceAPI
@@ -162,4 +164,16 @@ func (instance GlanceAPI) IsReady() bool {
 func (instance GlanceAPI) APIName() string {
 	// The information is stored as a label
 	return instance.Labels[APINameLabel]
+}
+
+// APIParent - returns the name used to identify the API
+func (instance GlanceAPI) APIParent() string {
+	// The information is stored as a label
+	return instance.Labels[APINameParent]
+}
+
+// APICount - returns the current API scaffolded from a template
+func (instance GlanceAPI) APICount() string {
+	// The information is stored as a label
+	return instance.Labels[APICountLabel]
 }

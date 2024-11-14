@@ -52,6 +52,11 @@ type GlanceAPITemplate struct {
 	// Replicas of glance API to run
 	Replicas *int32 `json:"replicas"`
 
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=1
+	// Count of glance API to scaffold
+	Count *int `json:"count"`
+
 	// +kubebuilder:validation:Required
 	// Glance Container Image URL (will be set to environmental default if empty)
 	ContainerImage string `json:"containerImage"`
