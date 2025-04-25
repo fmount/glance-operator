@@ -29,6 +29,7 @@ import (
 	"github.com/openstack-k8s-operators/lib-common/modules/storage"
 
 	"sort"
+	"strconv"
 
 	"golang.org/x/exp/maps"
 	appsv1 "k8s.io/api/apps/v1"
@@ -51,6 +52,7 @@ func StatefulSet(
 	annotations map[string]string,
 	privileged bool,
 	topology *topologyv1.Topology,
+	legacyMode bool,
 ) (*appsv1.StatefulSet, error) {
 	userID := glance.GlanceUID
 	startupProbe := &corev1.Probe{
@@ -109,6 +111,9 @@ func StatefulSet(
 	envVars["CONFIG_HASH"] = env.SetValue(configHash)
 	envVars["GLANCE_DOMAIN"] = env.SetValue(instance.Status.Domain)
 	envVars["URISCHEME"] = env.SetValue(string(glanceURIScheme))
+
+	// Enable legacyMode
+	envVars["LEGACY_MODE"] = env.SetValue(string(strconv.FormatBool(legacyMode)))
 
 	// basic volume/volumeMounts
 	apiVolumes := glance.GetAPIVolumes(instance.Name)
@@ -231,7 +236,9 @@ func StatefulSet(
 								privileged,
 								instance.Spec.Storage.External,
 								instance.Spec.ExtraMounts,
-								extraVolPropagation),
+								extraVolPropagation,
+								"httpd",
+							),
 								apiVolumeMounts...,
 							),
 							Resources:      instance.Spec.Resources,
@@ -244,6 +251,42 @@ func StatefulSet(
 			},
 		},
 	}
+	if legacyMode {
+		legacyContainers := []corev1.Container{
+			{
+				Name: glance.ServiceName + "-api",
+				Command: []string{
+					"/usr/bin/dumb-init",
+				},
+				Args: []string{
+					"--single-child",
+					"--",
+					"/bin/bash",
+					"-c",
+					string(GlanceServiceCommand),
+				},
+				Image:           instance.Spec.ContainerImage,
+				SecurityContext: glance.LegacyAPISecurityContext(userID, privileged),
+				Env:             env.MergeEnvs([]corev1.EnvVar{}, envVars),
+				VolumeMounts: append(glance.GetVolumeMounts(
+					instance.Spec.CustomServiceConfigSecrets,
+					privileged,
+					instance.Spec.Storage.External,
+					instance.Spec.ExtraMounts,
+					extraVolPropagation,
+					"api",
+				),
+					apiVolumeMounts...,
+				),
+				Resources:      instance.Spec.Resources,
+				StartupProbe:   startupProbe,
+				ReadinessProbe: readinessProbe,
+				LivenessProbe:  livenessProbe,
+			},
+		}
+		statefulset.Spec.Template.Spec.Containers = append(statefulset.Spec.Template.Spec.Containers, legacyContainers...)
+	}
+
 	var err error
 	if !instance.Spec.Storage.External {
 		localPvc, err := glance.GetPvc(instance, labels, glance.PvcLocal)

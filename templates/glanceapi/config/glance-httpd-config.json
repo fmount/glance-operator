@@ -16,6 +16,13 @@
         "perm": "0644"
       },
       {
+        "source": "/var/lib/config-data/default/10-legacy-glance-httpd.conf",
+        "dest": "/etc/httpd/conf.d/10-legacy-glance.conf",
+        "owner": "glance:apache",
+        "optional": true,
+        "perm": "0644"
+      },
+      {
         "source": "/var/lib/config-data/default/ssl.conf",
         "dest": "/etc/httpd/conf.d/ssl.conf",
         "owner": "glance:apache",

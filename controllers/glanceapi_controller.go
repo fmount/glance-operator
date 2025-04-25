@@ -904,6 +904,7 @@ func (r *GlanceAPIReconciler) reconcileNormal(
 		serviceAnnotations,
 		privileged,
 		topology,
+		false,
 	)
 	if err != nil {
 		return ctrlResult, err
