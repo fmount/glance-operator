@@ -108,6 +108,12 @@ const (
 	ShortDuration = time.Duration(5) * time.Second
 	// NormalDuration -
 	NormalDuration = time.Duration(10) * time.Second
+	// GlanceWSGILabel -
+	GlanceWSGILabel = "wsgi"
+	// GlanceVersionMapName -
+	GlanceVersionMapName = "glance-config-version"
+	// GlanceVersionCommand -
+	GlanceVersionCommand = "/usr/local/bin/container-scripts/glance-detect-version"
 )
 
 // DbsyncPropagation keeps track of the DBSync Service Propagation Type

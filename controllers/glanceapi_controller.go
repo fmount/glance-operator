@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	batchv1 "k8s.io/api/batch/v1"
@@ -818,8 +819,17 @@ func (r *GlanceAPIReconciler) reconcileNormal(
 		return ctrlResult, nil
 	}
 
+	var wsgi = true
+	// Get LegacyMode annotation set by the top-level controller
+	if l, ok := instance.GetAnnotations()[glance.GlanceWSGILabel]; ok {
+		wsgi, err = strconv.ParseBool(l)
+		if err != nil {
+			return ctrlResult, err
+		}
+	}
+
 	// Generate service config
-	err = r.generateServiceConfig(ctx, helper, instance, &configVars, imageConv, memcached)
+	err = r.generateServiceConfig(ctx, helper, instance, &configVars, imageConv, memcached, wsgi)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.ServiceConfigReadyCondition,
@@ -904,7 +914,7 @@ func (r *GlanceAPIReconciler) reconcileNormal(
 		serviceAnnotations,
 		privileged,
 		topology,
-		false,
+		wsgi,
 	)
 	if err != nil {
 		return ctrlResult, err
@@ -1054,6 +1064,7 @@ func (r *GlanceAPIReconciler) generateServiceConfig(
 	envVars *map[string]env.Setter,
 	imageConv bool,
 	memcached *memcachedv1.Memcached,
+	wsgi bool,
 ) error {
 	labels := labels.GetLabels(instance, labels.GetGroupLabel(glance.ServiceName), GetServiceLabels(instance))
 
@@ -1149,6 +1160,7 @@ func (r *GlanceAPIReconciler) generateServiceConfig(
 		"QuotaEnabled": instance.Spec.Quota,
 		"LogFile":      fmt.Sprintf("%s%s.log", glance.GlanceLogPath, instance.Name),
 		"VHosts":       httpdVhostConfig,
+		"Wsgi":         wsgi,
 	}
 
 	// Only set EndpointID parameter when the Endpoint has been created and the

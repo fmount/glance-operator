@@ -111,9 +111,10 @@ var _ = Describe("Glance controller", func() {
 				corev1.ConditionTrue,
 			)
 			role := th.GetRole(glanceTest.GlanceRole)
-			Expect(role.Rules).To(HaveLen(2))
+			Expect(role.Rules).To(HaveLen(3))
 			Expect(role.Rules[0].Resources).To(Equal([]string{"securitycontextconstraints"}))
 			Expect(role.Rules[1].Resources).To(Equal([]string{"pods"}))
+			Expect(role.Rules[2].Resources).To(Equal([]string{"configmaps"}))
 
 			th.ExpectCondition(
 				glanceName,
@@ -226,6 +227,7 @@ var _ = Describe("Glance controller", func() {
 			mariadb.SimulateMariaDBDatabaseCompleted(glanceTest.GlanceDatabaseName)
 			mariadb.SimulateMariaDBAccountCompleted(glanceTest.GlanceDatabaseAccount)
 			th.SimulateJobSuccess(glanceTest.GlanceDBSync)
+			th.SimulateJobSuccess(glanceTest.GlanceVersion)
 			keystoneAPI := keystone.CreateKeystoneAPI(glanceTest.Instance.Namespace)
 			DeferCleanup(keystone.DeleteKeystoneAPI, keystoneAPI)
 			keystone.SimulateKeystoneServiceReady(glanceTest.KeystoneService)
@@ -284,6 +286,7 @@ var _ = Describe("Glance controller", func() {
 			mariadb.SimulateMariaDBDatabaseCompleted(glanceTest.GlanceDatabaseName)
 			mariadb.SimulateMariaDBAccountCompleted(glanceTest.GlanceDatabaseAccount)
 			th.SimulateJobSuccess(glanceTest.GlanceDBSync)
+			th.SimulateJobSuccess(glanceTest.GlanceVersion)
 			keystone.SimulateKeystoneServiceReady(glanceTest.KeystoneService)
 			keystone.SimulateKeystoneEndpointReady(glanceTest.GlanceSingle)
 		})
@@ -345,6 +348,7 @@ var _ = Describe("Glance controller", func() {
 			mariadb.SimulateMariaDBDatabaseCompleted(glanceTest.GlanceDatabaseName)
 			mariadb.SimulateMariaDBAccountCompleted(glanceTest.GlanceDatabaseAccount)
 			th.SimulateJobSuccess(glanceTest.GlanceDBSync)
+			th.SimulateJobSuccess(glanceTest.GlanceVersion)
 			keystone.SimulateKeystoneServiceReady(glanceTest.KeystoneService)
 			keystone.SimulateKeystoneEndpointReady(glanceTest.GlanceSingle)
 		})
@@ -375,6 +379,7 @@ var _ = Describe("Glance controller", func() {
 
 			Eventually(func(g Gomega) {
 				th.SimulateJobSuccess(glanceTest.GlanceDBSync)
+				th.SimulateJobSuccess(glanceTest.GlanceVersion)
 				g.Expect(th.GetJob(glanceTest.GlanceDBSync).Spec.Template.Spec.NodeSelector).To(Equal(map[string]string{"foo2": "bar2"}))
 				g.Expect(th.GetStatefulSet(glanceTest.GlanceSingle).Spec.Template.Spec.NodeSelector).To(Equal(map[string]string{"foo2": "bar2"}))
 				g.Expect(GetCronJob(glanceTest.DBPurgeCronJob).Spec.JobTemplate.Spec.Template.Spec.NodeSelector).To(Equal(map[string]string{"foo2": "bar2"}))
@@ -398,6 +403,7 @@ var _ = Describe("Glance controller", func() {
 
 			Eventually(func(g Gomega) {
 				th.SimulateJobSuccess(glanceTest.GlanceDBSync)
+				th.SimulateJobSuccess(glanceTest.GlanceVersion)
 				g.Expect(th.GetJob(glanceTest.GlanceDBSync).Spec.Template.Spec.NodeSelector).To(BeNil())
 				g.Expect(th.GetStatefulSet(glanceTest.GlanceSingle).Spec.Template.Spec.NodeSelector).To(BeNil())
 				g.Expect(GetCronJob(glanceTest.DBPurgeCronJob).Spec.JobTemplate.Spec.Template.Spec.NodeSelector).To(BeNil())
@@ -420,6 +426,7 @@ var _ = Describe("Glance controller", func() {
 
 			Eventually(func(g Gomega) {
 				th.SimulateJobSuccess(glanceTest.GlanceDBSync)
+				th.SimulateJobSuccess(glanceTest.GlanceVersion)
 				g.Expect(th.GetJob(glanceTest.GlanceDBSync).Spec.Template.Spec.NodeSelector).To(BeNil())
 				g.Expect(th.GetStatefulSet(glanceTest.GlanceSingle).Spec.Template.Spec.NodeSelector).To(BeNil())
 				g.Expect(GetCronJob(glanceTest.DBPurgeCronJob).Spec.JobTemplate.Spec.Template.Spec.NodeSelector).To(BeNil())
@@ -492,6 +499,7 @@ var _ = Describe("Glance controller", func() {
 			mariadb.SimulateMariaDBDatabaseCompleted(glanceTest.GlanceDatabaseName)
 			mariadb.SimulateMariaDBAccountCompleted(glanceTest.GlanceDatabaseAccount)
 			th.SimulateJobSuccess(glanceTest.GlanceDBSync)
+			th.SimulateJobSuccess(glanceTest.GlanceVersion)
 			keystone.SimulateKeystoneServiceReady(glanceTest.KeystoneService)
 			keystone.SimulateKeystoneEndpointReady(glanceTest.GlanceSingle)
 		})
@@ -559,6 +567,7 @@ var _ = Describe("Glance controller", func() {
 			mariadb.SimulateMariaDBDatabaseCompleted(glanceTest.GlanceDatabaseName)
 			mariadb.SimulateMariaDBAccountCompleted(glanceTest.GlanceDatabaseAccount)
 			th.SimulateJobSuccess(glanceTest.GlanceDBSync)
+			th.SimulateJobSuccess(glanceTest.GlanceVersion)
 			keystoneAPI := keystone.CreateKeystoneAPI(glanceTest.Instance.Namespace)
 			DeferCleanup(keystone.DeleteKeystoneAPI, keystoneAPI)
 			keystoneAPIName := keystone.GetKeystoneAPI(keystoneAPI)
@@ -623,6 +632,7 @@ var _ = Describe("Glance controller", func() {
 			mariadb.SimulateMariaDBDatabaseCompleted(glanceTest.GlanceDatabaseName)
 			mariadb.SimulateMariaDBAccountCompleted(glanceTest.GlanceDatabaseAccount)
 			th.SimulateJobSuccess(glanceTest.GlanceDBSync)
+			th.SimulateJobSuccess(glanceTest.GlanceVersion)
 			keystoneAPI := keystone.CreateKeystoneAPI(glanceTest.Instance.Namespace)
 			DeferCleanup(keystone.DeleteKeystoneAPI, keystoneAPI)
 			keystone.SimulateKeystoneServiceReady(glanceTest.KeystoneService)
@@ -692,6 +702,7 @@ var _ = Describe("Glance controller", func() {
 			mariadb.SimulateMariaDBDatabaseCompleted(glanceTest.GlanceDatabaseName)
 			mariadb.SimulateMariaDBAccountCompleted(glanceTest.GlanceDatabaseAccount)
 			th.SimulateJobSuccess(glanceTest.GlanceDBSync)
+			th.SimulateJobSuccess(glanceTest.GlanceVersion)
 			keystoneAPI := keystone.CreateKeystoneAPI(glanceTest.Instance.Namespace)
 			DeferCleanup(keystone.DeleteKeystoneAPI, keystoneAPI)
 			keystone.SimulateKeystoneServiceReady(glanceTest.KeystoneService)
@@ -848,6 +859,7 @@ var _ = Describe("Glance controller", func() {
 			mariadb.SimulateMariaDBAccountCompleted(accountName)
 			mariadb.SimulateMariaDBDatabaseCompleted(glanceTest.GlanceDatabaseName)
 			th.SimulateJobSuccess(glanceTest.GlanceDBSync)
+			th.SimulateJobSuccess(glanceTest.GlanceVersion)
 			keystone.SimulateKeystoneServiceReady(glanceTest.KeystoneService)
 			keystone.SimulateKeystoneEndpointReady(glanceTest.GlanceSingle)
 			GlanceAPIExists(glanceTest.GlanceSingle)

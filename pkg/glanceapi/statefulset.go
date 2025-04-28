@@ -52,7 +52,7 @@ func StatefulSet(
 	annotations map[string]string,
 	privileged bool,
 	topology *topologyv1.Topology,
-	legacyMode bool,
+	wsgi bool,
 ) (*appsv1.StatefulSet, error) {
 	userID := glance.GlanceUID
 	startupProbe := &corev1.Probe{
@@ -112,8 +112,8 @@ func StatefulSet(
 	envVars["GLANCE_DOMAIN"] = env.SetValue(instance.Status.Domain)
 	envVars["URISCHEME"] = env.SetValue(string(glanceURIScheme))
 
-	// Enable legacyMode
-	envVars["LEGACY_MODE"] = env.SetValue(string(strconv.FormatBool(legacyMode)))
+	// Enable WSGI mode
+	envVars["WSGI"] = env.SetValue(string(strconv.FormatBool(wsgi)))
 
 	// basic volume/volumeMounts
 	apiVolumes := glance.GetAPIVolumes(instance.Name)
@@ -251,7 +251,8 @@ func StatefulSet(
 			},
 		},
 	}
-	if legacyMode {
+	// legacy mode
+	if !wsgi {
 		legacyContainers := []corev1.Container{
 			{
 				Name: glance.ServiceName + "-api",

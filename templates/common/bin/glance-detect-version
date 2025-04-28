@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+
+BASE_URL="https://kubernetes.default.svc/api/v1/namespaces/${NAMESPACE}/configmaps"
+CM_NAME="glance-config-version"
+URL="${BASE_URL}/${CM_NAME}"
+
+# Credentials to be used by curl
+export CURL_CA_BUNDLE=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+
+function detect() {
+    if rpm -q python3-mod_wsgi &>/dev/null; then
+        echo "true"  # WSGI present
+    else
+        echo "false" # Legacy mode: mod_wsgi is not present
+    fi
+}
+
+function get_existing_cm() {
+    # Try to fetch the existing ConfigMap first
+    RESPONSE=$(/usr/bin/curl \
+        -H "Authorization: Bearer $TOKEN" \
+        --silent --show-error --fail-with-body \
+        -X GET "${URL}" 2>/dev/null)
+
+    # Return status code (0 for success, non-zero for failure)
+    return $?
+}
+
+function push() {
+    # Check if the ConfigMap already exists
+    if ! get_existing_cm; then
+        METHOD="POST"
+        TARGET_URL="${BASE_URL}"
+        RESOURCE_VERSION=""
+    else
+        METHOD="PUT"
+        TARGET_URL="${URL}"
+        # Extract resource version from the existing ConfigMap
+        RESOURCE_VERSION=$(echo "${RESPONSE}" | grep -o '"resourceVersion":"[^"]*"' | cut -d'"' -f4)
+        if [ -n "${RESOURCE_VERSION}" ]; then
+            RESOURCE_VERSION='"resourceVersion": "'"${RESOURCE_VERSION}"'",'
+        fi
+    fi
+
+    # Properly format the JSON with appropriate spacing and no trailing commas
+    CONFIGMAP_JSON=$(cat <<EOF
+{
+    "apiVersion": "v1",
+    "kind": "ConfigMap",
+    "metadata": {
+        ${RESOURCE_VERSION}
+        "name": "${CM_NAME}",
+        "namespace": "${NAMESPACE}",
+        "finalizers": ["openstack.org/glance"],
+        "ownerReferences": [
+            {
+                "apiVersion": "${OWNER_APIVERSION}",
+                "kind": "${OWNER_KIND}",
+                "name": "${OWNER_NAME}",
+                "uid": "${OWNER_UID}"
+            }
+        ]
+    },
+    "data": {
+        "wsgi": "$(detect)"
+    }
+}
+EOF
+)
+    echo "${CONFIGMAP_JSON}" > /tmp/cm-payload.json
+    # https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/config-map-v1/#update-replace-the-specified-configmap
+    RESPONSE_BODY=$(/usr/bin/curl \
+        -H "Authorization: Bearer $TOKEN" \
+        --data-binary "@/tmp/cm-payload.json" \
+        -H 'Content-Type: application/json' \
+        --silent --show-error --fail-with-body \
+        -X "${METHOD}" "${TARGET_URL}")
+
+    RESULT=$?
+    if [ ${RESULT} -ne 0 ]; then
+        echo "Error creating/updating ConfigMap:"
+        echo "${RESPONSE_BODY}"
+        return ${RESULT}
+    else
+        echo "ConfigMap successfully updated"
+        return 0
+    fi
+}
+
+# Main execution
+push

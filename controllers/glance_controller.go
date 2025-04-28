@@ -19,8 +19,10 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/gophercloud/gophercloud"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/configmap"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
@@ -399,8 +401,9 @@ func (r *GlanceReconciler) reconcileInit(
 	helper *helper.Helper,
 	serviceLabels map[string]string,
 	serviceAnnotations map[string]string,
-) (ctrl.Result, error) {
+) (ctrl.Result, bool, error) {
 	r.Log.Info(fmt.Sprintf("Reconciling Service '%s' init", instance.Name))
+	var wsgi = true
 
 	//
 	// create Keystone service and users - https://docs.openstack.org/Glance/latest/install/install-rdo.html#configure-user-and-endpoints
@@ -419,7 +422,7 @@ func (r *GlanceReconciler) reconcileInit(
 	ksSvc := keystonev1.NewKeystoneService(ksSvcSpec, instance.Namespace, serviceLabels, glance.NormalDuration)
 	ctrlResult, err := ksSvc.CreateOrPatch(ctx, helper)
 	if err != nil {
-		return ctrlResult, err
+		return ctrlResult, wsgi, err
 	}
 
 	// mirror the Status, Reason, Severity and Message of the latest keystoneservice condition
@@ -430,7 +433,7 @@ func (r *GlanceReconciler) reconcileInit(
 	}
 
 	if (ctrlResult != ctrl.Result{}) {
-		return ctrlResult, nil
+		return ctrlResult, wsgi, nil
 	}
 
 	instance.Status.ServiceID = ksSvc.GetServiceID()
@@ -461,7 +464,7 @@ func (r *GlanceReconciler) reconcileInit(
 			condition.RequestedReason,
 			condition.SeverityInfo,
 			condition.DBSyncReadyRunningMessage))
-		return ctrlResult, nil
+		return ctrlResult, wsgi, nil
 	}
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
@@ -470,7 +473,7 @@ func (r *GlanceReconciler) reconcileInit(
 			condition.SeverityWarning,
 			condition.DBSyncReadyErrorMessage,
 			err.Error()))
-		return ctrl.Result{}, err
+		return ctrl.Result{}, wsgi, err
 	}
 	if dbSyncjob.HasChanged() {
 		instance.Status.Hash[glancev1.DbSyncHash] = dbSyncjob.GetHash()
@@ -482,8 +485,66 @@ func (r *GlanceReconciler) reconcileInit(
 	// when job passed, mark NetworkAttachmentsReadyCondition ready, because we
 	// pass NADs as serviceAnnotation to glance-dbsync job
 	instance.Status.Conditions.MarkTrue(condition.NetworkAttachmentsReadyCondition, condition.NetworkAttachmentsReadyMessage)
+
+	//
+	// run Glance version check
+	//
+	imageHash := instance.Status.Hash[glancev1.APIImageHash]
+	currentImageHash, _ := util.ObjectHash(instance.Spec.ContainerImage)
+	if imageHash != "" && imageHash != currentImageHash {
+		// we trigger the version detect job provided that the job spec changed
+		versionHash := instance.Status.Hash[glancev1.VersionHash]
+		versionJobDef := glance.Version(instance, serviceLabels, serviceAnnotations)
+		versionDetectJob := job.NewJob(
+			versionJobDef,
+			glancev1.VersionHash,
+			instance.Spec.PreserveJobs,
+			glance.ShortDuration,
+			versionHash,
+		)
+		ctrlResult, err = versionDetectJob.DoJob(
+			ctx,
+			helper,
+		)
+		if (ctrlResult != ctrl.Result{}) {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				glancev1.VersionReadyCondition,
+				condition.RequestedReason,
+				condition.SeverityInfo,
+				glancev1.VersionReadyRunningMessage))
+			return ctrlResult, wsgi, nil
+		}
+		if err != nil {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				glancev1.VersionReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				glancev1.VersionReadyErrorMessage,
+				err.Error()))
+			return ctrl.Result{}, wsgi, err
+		}
+		if versionDetectJob.HasChanged() {
+			instance.Status.Hash[glancev1.VersionHash] = versionHash
+			r.Log.Info(fmt.Sprintf("Service '%s' - Job %s hash added - %s", instance.Name, versionJobDef.Name, instance.Status.Hash[glancev1.VersionHash]))
+		}
+		instance.Status.Hash[glancev1.APIImageHash] = currentImageHash
+	}
+	// retrieve the result of the job
+	cm, ctrlResult, err := configmap.GetConfigMap(ctx, helper, instance, glance.GlanceVersionMapName, glance.NormalDuration)
+	if err != nil {
+		return ctrlResult, wsgi, err
+	}
+	// Get the specific key
+	wsgi, err = strconv.ParseBool(cm.Data[glance.GlanceWSGILabel])
+	if err != nil {
+		wsgi = true
+	}
+
+	instance.Status.Conditions.MarkTrue(glancev1.VersionReadyCondition, glancev1.VersionReadyMessage)
+	// run Glance version check - end
+
 	r.Log.Info(fmt.Sprintf("Reconciled Service '%s' init successfully", instance.Name))
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, wsgi, nil
 }
 
 func (r *GlanceReconciler) reconcileNormal(ctx context.Context, instance *glancev1.Glance, helper *helper.Helper) (ctrl.Result, error) {
@@ -500,6 +561,11 @@ func (r *GlanceReconciler) reconcileNormal(ctx context.Context, instance *glance
 			APIGroups: []string{""},
 			Resources: []string{"pods"},
 			Verbs:     []string{"create", "get", "list", "watch", "update", "patch", "delete"},
+		},
+		{
+			APIGroups: []string{""},
+			Resources: []string{"configmaps"},
+			Verbs:     []string{"create", "get", "update", "delete"},
 		},
 	}
 	rbacResult, err := common_rbac.ReconcileRbac(ctx, helper, instance, rbacRules)
@@ -619,7 +685,7 @@ func (r *GlanceReconciler) reconcileNormal(ctx context.Context, instance *glance
 		}
 	}
 	// Handle service init
-	ctrlResult, err = r.reconcileInit(ctx, instance, helper, serviceLabels, serviceAnnotations)
+	ctrlResult, wsgi, err := r.reconcileInit(ctx, instance, helper, serviceLabels, serviceAnnotations)
 	if err != nil {
 		return ctrlResult, err
 	} else if (ctrlResult != ctrl.Result{}) {
@@ -629,9 +695,8 @@ func (r *GlanceReconciler) reconcileNormal(ctx context.Context, instance *glance
 	//
 	// Reconcile the GlanceAPI deployment
 	//
-
 	for name, glanceAPI := range instance.Spec.GlanceAPIs {
-		err = r.apiDeployment(ctx, instance, name, glanceAPI, helper, serviceLabels, memcached)
+		err = r.apiDeployment(ctx, instance, name, glanceAPI, helper, serviceLabels, memcached, wsgi)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -690,6 +755,7 @@ func (r *GlanceReconciler) apiDeployment(
 	helper *helper.Helper,
 	serviceLabels map[string]string,
 	memcached *memcachedv1.Memcached,
+	wsgi bool,
 ) error {
 	// By default internal and external points to diff instances, but we might
 	// want to override "external" with "single" in case APIType == "single":
@@ -722,6 +788,7 @@ func (r *GlanceReconciler) apiDeployment(
 		helper,
 		serviceLabels,
 		memcached,
+		wsgi,
 	)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
@@ -771,6 +838,7 @@ func (r *GlanceReconciler) apiDeployment(
 			helper,
 			serviceLabels,
 			memcached,
+			wsgi,
 		)
 		if err != nil {
 			instance.Status.Conditions.Set(condition.FalseCondition(
@@ -819,6 +887,7 @@ func (r *GlanceReconciler) apiDeploymentCreateOrUpdate(
 	helper *helper.Helper,
 	serviceLabels map[string]string,
 	memcached *memcachedv1.Memcached,
+	wsgi bool,
 ) (*glancev1.GlanceAPI, controllerutil.OperationResult, error) {
 	apiAnnotations := map[string]string{}
 	apiSpec := glancev1.GlanceAPISpec{
@@ -872,6 +941,9 @@ func (r *GlanceReconciler) apiDeploymentCreateOrUpdate(
 	if apiSpec.GlanceAPITemplate.TopologyRef == nil {
 		apiSpec.GlanceAPITemplate.TopologyRef = instance.Spec.TopologyRef
 	}
+
+	// Set deployment mode (legacy vs mod_wsgi)
+	apiAnnotations[glance.GlanceWSGILabel] = strconv.FormatBool(wsgi)
 
 	// Add the API name to the GlanceAPI instance as a label
 	serviceLabels[glancev1.APINameLabel] = apiName

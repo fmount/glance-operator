@@ -45,4 +45,14 @@ const (
 	InvalidBackendErrorMessageSplit = "The GlanceAPI layout type: split cannot be used in combination with File and NFS backend"
 	// InvalidBackendErrorMessageSingle
 	InvalidBackendErrorMessageSingle = "The GlanceAPI layout type: single can only be used in combination with File and NFS backend"
+	// VersionReadyCondition Status=True condition when version job completed and the version is extracted
+	VersionReadyCondition = "VersionReady"
+	// VersionReadyInitMessage
+	VersionReadyInitMessage = "Version detect not started"
+	// VersionReadyMessage
+	VersionReadyMessage = "Version detect completed"
+	// VersionReadyRunning
+	VersionReadyRunningMessage = "Version detect job still running"
+	// VersionReadyErrorMessage
+	VersionReadyErrorMessage = "Version detect job error occurred %s"
 )

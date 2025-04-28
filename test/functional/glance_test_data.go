@@ -79,6 +79,7 @@ type GlanceTestData struct {
 	GlanceRoleBinding           types.NamespacedName
 	GlanceSA                    types.NamespacedName
 	GlanceDBSync                types.NamespacedName
+	GlanceVersion               types.NamespacedName
 	GlancePublicSvc             types.NamespacedName
 	GlanceInternalSvc           types.NamespacedName
 	GlanceInternalKeystoneEP    types.NamespacedName
@@ -114,6 +115,10 @@ func GetGlanceTestData(glanceName types.NamespacedName) GlanceTestData {
 		GlanceDBSync: types.NamespacedName{
 			Namespace: glanceName.Namespace,
 			Name:      "glance-db-sync",
+		},
+		GlanceVersion: types.NamespacedName{
+			Namespace: glanceName.Namespace,
+			Name:      "glance-detect-version",
 		},
 		GlanceSingle: types.NamespacedName{
 			Namespace: glanceName.Namespace,

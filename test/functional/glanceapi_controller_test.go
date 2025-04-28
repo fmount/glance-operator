@@ -1075,6 +1075,7 @@ var _ = Describe("Glanceapi controller", func() {
 			mariadb.SimulateMariaDBDatabaseCompleted(glanceTest.GlanceDatabaseName)
 			mariadb.SimulateMariaDBAccountCompleted(glanceTest.GlanceDatabaseAccount)
 			th.SimulateJobSuccess(glanceTest.GlanceDBSync)
+			th.SimulateJobSuccess(glanceTest.GlanceVersion)
 			keystoneAPI := keystone.CreateKeystoneAPI(glanceTest.Instance.Namespace)
 			DeferCleanup(keystone.DeleteKeystoneAPI, keystoneAPI)
 			keystone.SimulateKeystoneServiceReady(glanceTest.KeystoneService)
