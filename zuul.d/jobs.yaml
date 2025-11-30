@@ -30,6 +30,13 @@
         dashboard_enabled: false
         cephfs_enabled: true
         ceph_nfs_enabled: false
+        # Override the Ceph container tag and deploy Tentacle
+        cifmw_cephadm_container_tag: "v20"
+        # Override the Ceph Tools repo and install cephadm Squid
+        cifmw_cephadm_repository_override: true
+        cifmw_cephadm_version: "tentacle"
+        cifmw_cephadm_prepare_host: true
+        cifmw_rgw_ssl_backward_compatibility: false
       cifmw_install_yamls_sdk_version: v1.41.1
       cifmw_test_operator_tempest_concurrency: 3
       cifmw_test_operator_tempest_include_list: |
