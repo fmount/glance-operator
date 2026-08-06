@@ -1343,6 +1343,11 @@ func (r *GlanceAPIReconciler) generateServiceConfig(
 		httpdVhostConfig[endpt.String()] = endptConfig
 	}
 
+	var CaFilePath string
+	if instance.Spec.TLS.CaBundleSecretName != "" {
+		CaFilePath = tls.DownstreamTLSCABundlePath
+	}
+
 	templateParameters := map[string]any{
 		"ServiceUser":         instance.Spec.ServiceUser,
 		"ServicePassword":     string(ospSecret.Data[instance.Spec.PasswordSelectors.Service]),
@@ -1361,6 +1366,7 @@ func (r *GlanceAPIReconciler) generateServiceConfig(
 		"LogFile":      fmt.Sprintf("%s%s.log", glance.GlanceLogPath, instance.Name),
 		"VHosts":       httpdVhostConfig,
 		"Wsgi":         wsgi,
+		"CaFilePath":   CaFilePath,
 	}
 
 	// Try to get Application Credential from the secret specified in the CR
