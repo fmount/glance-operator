@@ -720,6 +720,7 @@ func (r *GlanceAPIReconciler) reconcileNormal(
 	configVars := make(map[string]env.Setter)
 	privileged := false
 	imageConv := false
+	fileBackend := false
 	extConfigOptions := []util.IniOption{}
 
 	//
@@ -844,6 +845,13 @@ func (r *GlanceAPIReconciler) reconcileNormal(
 			// We see at least a Cinder CR in the namespace, unblock glance
 			// deployment
 			privileged = true
+		case "file":
+			// The image store directory has to be writable by the glance user
+			// before the API starts. Note this is intentionally driven by the
+			// presence of a file store in enabled_backends rather than by
+			// IsFileBackend(), which only reports true when file is the *only*
+			// backend; a file store combined with e.g. rbd needs the same setup.
+			fileBackend = true
 		case "rbd":
 			// enable image conversion by default
 			Log.Info("Ceph config detected: enable image conversion by default")
@@ -1067,6 +1075,7 @@ func (r *GlanceAPIReconciler) reconcileNormal(
 		GetServiceLabels(instance),
 		serviceAnnotations,
 		privileged,
+		fileBackend,
 		topology,
 		wsgi,
 		memcached,

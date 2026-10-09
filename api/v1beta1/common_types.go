@@ -216,6 +216,33 @@ func GetEnabledBackends(customServiceConfig string) []string {
 	return availableBackends
 }
 
+// DefaultFilesystemStoreDatadir - the location glance writes image data to when
+// a file backend is configured and filesystem_store_datadir is not overridden
+const DefaultFilesystemStoreDatadir = "/var/lib/glance/images"
+
+// GetFilesystemStoreDatadir - Given a instance.Spec.CustomServiceConfig object,
+// return the directory a file backend writes image data to. The option lives in
+// the per-backend section, so the first occurrence wins and
+// DefaultFilesystemStoreDatadir is returned when it is not set at all.
+func GetFilesystemStoreDatadir(customServiceConfig string) string {
+	svcConfigLines := strings.Split(customServiceConfig, "\n")
+	for _, line := range svcConfigLines {
+		tokenLine := strings.SplitN(strings.TrimSpace(line), "=", 2)
+		token := strings.ReplaceAll(tokenLine[0], " ", "")
+
+		if token == "" || strings.HasPrefix(token, "#") {
+			// Skip blank lines and comments
+			continue
+		}
+		if token == "filesystem_store_datadir" && len(tokenLine) == 2 {
+			if datadir := strings.TrimSpace(tokenLine[1]); datadir != "" {
+				return datadir
+			}
+		}
+	}
+	return DefaultFilesystemStoreDatadir
+}
+
 // ValidateTopology -
 func (instance *GlanceAPITemplate) ValidateTopology(
 	basePath *field.Path,
