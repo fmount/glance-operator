@@ -16,8 +16,10 @@ limitations under the License.
 package glanceapi
 
 import (
+	"fmt"
 	"path"
 	"strconv"
+	"strings"
 
 	glancev1 "github.com/openstack-k8s-operators/glance-operator/api/v1beta1"
 	"github.com/openstack-k8s-operators/glance-operator/internal/glance"
@@ -36,9 +38,14 @@ const datadirSetupScriptName = "datadir-setup.sh"
 // backend is detected.
 func DatadirInitContainers(
 	instance *glancev1.GlanceAPI,
-	volumeMounts []corev1.VolumeMount,
-) []corev1.Container {
+	dataMounts []corev1.VolumeMount,
+) ([]corev1.Container, error) {
 	datadir := glance.GetFilesystemStoreDatadir(instance.Spec.CustomServiceConfig)
+	mount, err := datadirMount(datadir, dataMounts)
+	if err != nil {
+		return nil, err
+	}
+	mounts := append([]corev1.VolumeMount{mount}, glance.GetScriptVolumeMount()...)
 
 	return []corev1.Container{
 		{
@@ -68,8 +75,43 @@ func DatadirInitContainers(
 					Type: corev1.SeccompProfileTypeRuntimeDefault,
 				},
 			},
-			VolumeMounts: append(volumeMounts, glance.GetScriptVolumeMount()...),
+			VolumeMounts: mounts,
 			Resources:    instance.Spec.Resources,
 		},
+	}, nil
+}
+
+// datadirMount returns the most specific writable data mount the datadir lives
+// on, so the init container prepares the directory at the same path, and on
+// the same volume, that glance-api will later write images to. Nothing else
+// the API mounts is given to the root init container.
+func datadirMount(datadir string, dataMounts []corev1.VolumeMount) (corev1.VolumeMount, error) {
+	datadirPath := path.Clean(datadir)
+	var selected corev1.VolumeMount
+	selectedPath := ""
+	for _, mount := range dataMounts {
+		mountPath := path.Clean(mount.MountPath)
+		if mount.ReadOnly || !pathContains(mountPath, datadirPath) ||
+			(selectedPath != "" && len(mountPath) <= len(selectedPath)) {
+			continue
+		}
+		selected, selectedPath = mount, mountPath
 	}
+	if selectedPath == "" {
+		return selected, fmt.Errorf("filesystem_store_datadir %q is not on a writable image store volume", datadir)
+	}
+	return selected, nil
+}
+
+// pathContains reports whether target is dir itself or lives below it. Both
+// paths are expected to be cleaned already.
+func pathContains(dir string, target string) bool {
+	if dir == target {
+		return true
+	}
+	if !strings.HasSuffix(dir, "/") {
+		// path.Clean only keeps a trailing slash for the root directory
+		dir += "/"
+	}
+	return strings.HasPrefix(target, dir)
 }
